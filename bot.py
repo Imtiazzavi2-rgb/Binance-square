@@ -6,25 +6,15 @@ INTERVAL_SECONDS=int(86400/POSTS_PER_DAY)
 logging.basicConfig(level=logging.INFO,format="%(asctime)s [%(levelname)s] %(message)s")
 log=logging.getLogger(__name__)
 def get_trending_coins():
-    coins=[]
     headers={"X-CMC_PRO_API_KEY":CMC_API_KEY,"Accept":"application/json"}
     try:
-        r=requests.get("https://pro-api.coinmarketcap.com/v1/cryptocurrency/trending/gainers-losers",headers=headers,params={"limit":10,"time_period":"24h"},timeout=10)
-        coins+=r.json().get("data",{}).get("gainers",[])[:5]
+        r=requests.get("https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest",headers=headers,params={"limit":20,"sort":"percent_change_24h","sort_dir":"desc","cryptocurrency_type":"all"},timeout=10)
+        data=r.json().get("data",[])
+        log.info(f"✅ Got {len(data)} coins")
+        return data
     except Exception as e:
-        log.warning(f"Gainers failed:{e}")
-    try:
-        r=requests.get("https://pro-api.coinmarketcap.com/v1/cryptocurrency/trending/most-visited",headers=headers,params={"limit":10,"time_period":"24h"},timeout=10)
-        coins+=r.json().get("data",[])[:5]
-    except Exception as e:
-        log.warning(f"Visited failed:{e}")
-    if not coins:
-        try:
-            r=requests.get("https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest",headers=headers,params={"limit":10,"sort":"percent_change_24h","sort_dir":"desc"},timeout=10)
-            coins=r.json().get("data",[])[:10]
-        except Exception as e:
-            log.error(f"Fallback failed:{e}")
-    return coins
+        log.error(f"❌ Fetch failed:{e}")
+        return []
 def fmt_price(p):
     if p is None:return "N/A"
     if p<0.001:return f"{p:.8f}"
@@ -62,7 +52,7 @@ def post_to_binance_square(content):
             if resp.get("success") or resp.get("code")=="000000":
                 log.info("✅ Posted!")
                 return True
-        log.warning(f"⚠️ Failed:{r.status_code}")
+        log.warning(f"⚠️ Failed:{r.status_code} {r.text[:100]}")
         return False
     except Exception as e:
         log.error(f"❌ Error:{e}")
@@ -86,7 +76,7 @@ def main():
         coin_index+=1
         if post_to_binance_square(generate_post(coin)):
             post_count+=1
-            log.info(f"📊 Posts today: {post_count}")
+            log.info(f"📊 Posts today:{post_count}")
         log.info(f"⏳ Next in {INTERVAL_SECONDS//60}min...")
         time.sleep(INTERVAL_SECONDS)
 if __name__=="__main__":
