@@ -8,7 +8,7 @@ log=logging.getLogger(__name__)
 def get_trending_coins():
     headers={"X-CMC_PRO_API_KEY":CMC_API_KEY,"Accept":"application/json"}
     try:
-        r=requests.get("https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest",headers=headers,params={"limit":20,"sort":"percent_change_24h","sort_dir":"desc","cryptocurrency_type":"all"},timeout=10)
+        r=requests.get("https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest",headers=headers,params={"limit":20,"sort":"percent_change_24h","sort_dir":"desc"},timeout=10)
         data=r.json().get("data",[])
         log.info(f"✅ Got {len(data)} coins")
         return data
@@ -43,16 +43,23 @@ def generate_post(coin):
     v=fmt_mcap(q.get("volume_24h"))
     return random.choice(TEMPLATES)(n,s,c,p,m,v)
 def post_to_binance_square(content):
-    headers={"Content-Type":"application/json","X-Api-Key":BINANCE_SQUARE_API_KEY}
+    url="https://www.binance.com/bapi/feed/v1/private/feed/post/create"
+    headers={
+        "Content-Type":"application/json",
+        "apikey":BINANCE_SQUARE_API_KEY,
+        "X-Api-Key":BINANCE_SQUARE_API_KEY,
+        "api-key":BINANCE_SQUARE_API_KEY,
+    }
     payload={"content":content,"contentType":"TEXT","publishType":"PUBLISH"}
     try:
-        r=requests.post("https://www.binance.com/bapi/feed/v1/private/feed/post/create",json=payload,headers=headers,timeout=15)
+        r=requests.post(url,json=payload,headers=headers,timeout=15)
+        log.info(f"Response:{r.status_code} {r.text[:200]}")
         if r.status_code==200:
             resp=r.json()
             if resp.get("success") or resp.get("code")=="000000":
                 log.info("✅ Posted!")
                 return True
-        log.warning(f"⚠️ Failed:{r.status_code} {r.text[:100]}")
+        log.warning(f"⚠️ Failed:{r.status_code}")
         return False
     except Exception as e:
         log.error(f"❌ Error:{e}")
