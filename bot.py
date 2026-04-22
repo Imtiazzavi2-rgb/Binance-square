@@ -44,12 +44,7 @@ def generate_post(coin):
     return random.choice(TEMPLATES)(n,s,c,p,m,v)
 def post_to_binance_square(content):
     url="https://www.binance.com/bapi/feed/v1/private/feed/post/create"
-    headers={
-        "Content-Type":"application/json",
-        "apikey":BINANCE_SQUARE_API_KEY,
-        "X-Api-Key":BINANCE_SQUARE_API_KEY,
-        "api-key":BINANCE_SQUARE_API_KEY,
-    }
+    headers={"Content-Type":"application/json","X-Square-OpenAPI-Key":BINANCE_SQUARE_API_KEY}
     payload={"content":content,"contentType":"TEXT","publishType":"PUBLISH"}
     try:
         r=requests.post(url,json=payload,headers=headers,timeout=15)
